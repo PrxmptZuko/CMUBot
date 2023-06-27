@@ -8,8 +8,9 @@ from discord.ui import Button, Select, View
 bot = discord.Client(intents=discord.Intents.default())
 AD = ActiveDirectory()
 
-#defining prefix ! to run bot commands
-bot = commands.Bot(command_prefix="!")
+#defining prefix ! to run bot 
+intents = discord.Intents.default()
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 # store user data with user_id as the key and authentication code as the value
 user_data = {}
@@ -106,6 +107,7 @@ async def authentication_user(message, user_id):
 def send_email(email_address, subject, message):
     print(f"Sending email to {email_address}: \nSubject: {subject}\nMessage: {message}")
 
+# TODO 
 
 
 # Help Ticket creation 
@@ -129,7 +131,7 @@ async def ticketcallback(interaction):
     ])
 
 # Handles ticket channel creation and sets necessary permissions 
-async def my_callback(interaction):
+
     if select.value[0] == "01":
         category = discord.utils.get(guild.categories, name="Tickets")
         channel = await guild.create_text_channel(f"{interaction.user.name}-ticket", category=category, overwrites=overwrites)
@@ -141,7 +143,7 @@ async def my_callback(interaction):
         await interaction.response.send_message(f"Created ticket - <#{channel.id}>", ephemeral=True)
         await channel.send("Hello, how can i help you?")
 
-    select.callback = my_callback
+  
     view = View(timeout=None)
     view.add_item(select)
     await interaction.response.send_message("Choose an option below", view=view, ephemeral=True)
@@ -172,7 +174,7 @@ async def on_message(message):
 
     print(f'{username} said: "{user_message}" ({channel})')
 
-    if user_message[0] == '?':
+    if user_message.startswith('?'):
         user_message = user_message[1:] 
         await send_message(message, user_message, is_private=True)
     else:
