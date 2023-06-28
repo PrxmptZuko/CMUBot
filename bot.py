@@ -55,6 +55,7 @@ async def on_ready():
 async def on_member_join(member):
     welcome_message = "Welcome to the Official Central Michigan Esports Discord! Please provide your email address for authentication:"
     try:
+        # Creates a user record within users.json
         user_authentication.create_user(member)
         await member.send(welcome_message)
     except discord.Forbidden:
@@ -91,10 +92,7 @@ async def on_message(message):
 
             await message.channel.send(reply_message)
 
-
-
 # Help Ticket creation 
-
 
 # defaults users cant see channel, when interaction (user select create ticket) changes view permission to 'True'. role = True allows mods to see channel
 async def ticketcallback(interaction):
@@ -113,7 +111,11 @@ async def ticketcallback(interaction):
         discord.SelectOption(label="Other Ticket", value="02", emoji="❌", description="This will open a ticket in the other section")
     ])
 
+<<<<<<< HEAD
     # Handles ticket channel creation and sets necessary permissions 
+=======
+# Handles ticket channel creation and sets necessary permissions 
+>>>>>>> f8d9d001f9e8b7018381805634dc32b038209c99
 
     if select.value[0] == "01":
         category = discord.utils.get(guild.categories, name="Tickets")
@@ -126,6 +128,10 @@ async def ticketcallback(interaction):
         await interaction.response.send_message(f"Created ticket - <#{channel.id}>", ephemeral=True)
         await channel.send("Hello, how can i help you?")
 
+<<<<<<< HEAD
+=======
+  
+>>>>>>> f8d9d001f9e8b7018381805634dc32b038209c99
     view = View(timeout=None)
     view.add_item(select)
     await interaction.response.send_message("Choose an option below", view=view, ephemeral=True)
