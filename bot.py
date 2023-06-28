@@ -111,11 +111,7 @@ async def ticketcallback(interaction):
         discord.SelectOption(label="Other Ticket", value="02", emoji="❌", description="This will open a ticket in the other section")
     ])
 
-<<<<<<< HEAD
     # Handles ticket channel creation and sets necessary permissions 
-=======
-# Handles ticket channel creation and sets necessary permissions 
->>>>>>> f8d9d001f9e8b7018381805634dc32b038209c99
 
     if select.value[0] == "01":
         category = discord.utils.get(guild.categories, name="Tickets")
@@ -128,10 +124,6 @@ async def ticketcallback(interaction):
         await interaction.response.send_message(f"Created ticket - <#{channel.id}>", ephemeral=True)
         await channel.send("Hello, how can i help you?")
 
-<<<<<<< HEAD
-=======
-  
->>>>>>> f8d9d001f9e8b7018381805634dc32b038209c99
     view = View(timeout=None)
     view.add_item(select)
     await interaction.response.send_message("Choose an option below", view=view, ephemeral=True)
