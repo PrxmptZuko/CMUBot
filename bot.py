@@ -7,11 +7,13 @@ import user_authentication
 
 
 # Initializes bot and active directory sessions.
-bot = discord.Client(intents=discord.Intents.default())
+
 AD = ActiveDirectory()
 
 #defining prefix ! to run bot 
 intents = discord.Intents.default()
+intents.message_content = True 
+intents.members = True 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # store user data with user_id as the key and authentication code as the value
@@ -71,13 +73,15 @@ async def on_message(message):
         user_id = message.author.id
 
         #check if the user already has auth code
-        with open('users.json', 'w') as file:
-            user_data = file.readlines()
+        file = open('users.json')
+        user_data = json.load(file)
 
         if user_id not in user_data:
             email_package = user_authentication.create_email(message)
+
             user_data[user_id]['email'] = email_package['email_address']
             user_data[user_id]['auth_code'] = email_package['auth_code']
+
             file.close()
 
             user_authentication.send_email(email_package)
@@ -91,6 +95,21 @@ async def on_message(message):
             # TODO assign a user role based on the role variable
 
             await message.channel.send(reply_message)
+
+# When message is sent into a channel that the bot has access to -
+# @client.event logs user chat msg to check if its a "!command", if so, Calls the 'send_message' function to send response to user
+
+    username = str(message.author)
+    user_message = str(message.content)
+    channel = str(message.channel)
+
+    print(f'{username} said: "{user_message}" ({channel})')
+
+    if user_message.startswith('?'):
+        user_message = user_message[1:] 
+        await send_message(message, user_message, is_private=True)
+    else:
+        await send_message(message, user_message, is_private=False)
 
 # Help Ticket creation 
 
@@ -136,29 +155,6 @@ async def ticket(interaction):
     view = discord.ui.View(timeout=None)
     view.add_item(button)
     await interaction.send("Open a ticket below", view=view)
-
-
-
-
-# When message is sent into a channel that the bot has access to -
-# @client.event logs user chat msg to check if its a "!command", if so, Calls the 'send_message' function to send response to user
-
-@client.event 
-async def on_message(message):
-    if message.author == client.user:
-        return
-        
-    username = str(message.author)
-    user_message = str(message.content)
-    channel = str(message.channel)
-
-    print(f'{username} said: "{user_message}" ({channel})')
-
-    if user_message.startswith('?'):
-        user_message = user_message[1:] 
-        await send_message(message, user_message, is_private=True)
-    else:
-        await send_message(message, user_message, is_private=False)
 
 
 client.run(TOKEN)
