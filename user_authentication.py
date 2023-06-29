@@ -1,6 +1,10 @@
 import re
 import random
 import json
+import smtplib, ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart 
+
 
 def _generate_authentication_code():
     """Creates an authentication code"""
@@ -18,10 +22,12 @@ def create_user(member):
     """Creates a user record within the user.json file"""
 
     # Acts as a placeholder for future data provided by user
-    user_record = str(member.author.id)
+    user_id = str(member.id)
     user_record = {
+        user_id: { 
         'email': '',
         'auth_code': ''
+        }
     }
     
     # Opens the users.json file and appends a new user to the list
@@ -55,6 +61,18 @@ def send_email(email_package):
     """Placeholder for real email functionality later"""
 
     # TODO Add real functionality to this method
+
+    sender = 'house3mm@cmich.edu'
+    reciever = email_package['email_address']
+    subject = email_package['email_subject']
+    body = email_package['email_body']
+    
+    # Creat MIME message object
+
+
+
+
+
     print(f"Email sent to {email_package['email_address']}\nSubject: {email_package['email_subject']}\Body: {email_package['email_body']}")
 
 def authenticate_user(message, AD):
