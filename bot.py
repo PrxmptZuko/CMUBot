@@ -55,11 +55,30 @@ async def on_ready():
 
 @client.event
 async def on_member_join(member):
+    if member == client.user:
+        return
+    # if message.content == f"Welcome {member.name}!":
+    #     return
+
+    guild = member.guild
+    #The default welcome channel (usually #general)
+    channel = guild.system_channel 
+
+    if channel is not None:
+        # Retrieve the last message in the channel
+        async for message in channel.history(limit=1):
+            last_message = message
+        
+         # Ignore the event if the last message was sent by the bot
+        if last_message and last_message.author == client.user:
+            return
+
     welcome_message = "Welcome to the Official Central Michigan Esports Discord! Please provide your email address for authentication:"
     try:
-        # Creates a user record within users.json
-        user_authentication.create_user(member)
-        await member.send(welcome_message)
+        if welcome_message:
+            # Creates a user record within users.json
+            user_authentication.create_user(member)
+            await member.send(welcome_message)
     except discord.Forbidden:
         print(f"Failed to send a private message to {member}.")
 
@@ -73,15 +92,16 @@ async def on_message(message):
         user_id = message.author.id
 
         #check if the user already has auth code
-        file = open('users.json')
-        user_data = json.load(file)
+        with open('users.json', 'r') as file:
+            user_data = json.load(file)
 
         if user_id not in user_data:
             email_package = user_authentication.create_email(message)
 
-            user_data[user_id]['email'] = email_package['email_address']
-            user_data[user_id]['auth_code'] = email_package['auth_code']
-
+            user_data[user_id]={
+            'email':email_package['email_address'],
+            'auth_code':email_package['auth_code']
+        }
             file.close()
 
             user_authentication.send_email(email_package)
@@ -157,7 +177,7 @@ async def ticket(interaction):
     await interaction.send("Open a ticket below", view=view)
 
 
-client.run(TOKEN)
+
 
 if __name__ == '__main__':
-    run_discord_bot()
+    client.run(TOKEN)
