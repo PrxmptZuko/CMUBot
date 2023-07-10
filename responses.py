@@ -1,6 +1,6 @@
 import random
 
-MOD_CHANNEL_ID = 123
+MOD_CHANNEL_ID = 1126969936082894988
 
 def handle_response(message, AD='') -> str:
     """Basic response functionality for bot"""
@@ -26,6 +26,7 @@ def handle_response(message, AD='') -> str:
         else:
             return f"User: {user}\nDescription: {user_description}"
         
+    return "Sorry, I didnt understand that command."
 
 async def on_message(message):
     if message.author == Client.user:
