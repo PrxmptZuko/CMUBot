@@ -27,6 +27,7 @@ integer_value = permissions.value
 # store user data with user_id as the key and authentication code as the value
 user_data = {}
 
+
 # independant message sent by the bot in either a private DM or returning output to original channel
 async def send_message(message, user_message, is_private):
     try:
@@ -47,7 +48,6 @@ def run_discord_bot():
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
-    # bot = commands.Bot(command_prefix="!", intents=intents)
     return bot, TOKEN
 
 bot, TOKEN = run_discord_bot()
@@ -55,6 +55,7 @@ bot, TOKEN = run_discord_bot()
 @bot.event
 async def on_ready():
 # Print the invite link and the integer value of the permissions
+    
     print(f"Permissions Integer Value: {integer_value}")
     # print(f"Invite Link: {invite_link}")
     print(f'{bot.user} is now running!')
@@ -94,7 +95,7 @@ async def on_member_join(member):
 async def on_message(message):
     if message.author == bot.user:
         return
-    
+
     # check if the message is from a new user in private message
     if isinstance(message.channel, discord.DMChannel) and message.author != bot.user:
         user_id = message.author.id
@@ -123,6 +124,16 @@ async def on_message(message):
             # TODO assign a user role based on the role variable
 
             await message.channel.send(reply_message)
+        
+    elif message.content.startswith("!"):
+        await bot.process_commands(message)
+    else: 
+        # Handle normal messages with the handle_response function
+        reply = responses.handle_response(message.content, AD)
+        await message.channel.send(reply)
+        return
+    #process commands from message
+    await bot.process_commands(message)
 
 # When message is sent into a channel that the bot has access to -
 # @client.event logs user chat msg to check if its a "!command", if so, Calls the 'send_message' function to send response to user
@@ -133,61 +144,113 @@ async def on_message(message):
 
     print(f'{username} said: "{user_message}" ({channel})')
 
-    if user_message.startswith('?'):
-        user_message = user_message[1:] 
-        await send_message(message, user_message, is_private=True)
-    else:
-        await send_message(message, user_message, is_private=False)
+    # if user_message.startswith('?'):
+    #     user_message = user_message[1:] 
+    #     await send_message(message, user_message, is_private=True)
+    # else:
+    #     await send_message(message, user_message, is_private=False)
 
 # Help Ticket creation 
 
-# defaults users cant see channel, when interaction (user select create ticket) changes view permission to 'True'. role = True allows mods to see channel
-async def ticketcallback(interaction):
-    guild = interaction.guild
-    role = discord.utils.get(guild.roles, name="Moderator")
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        interaction.user: discord.PermissionOverwrite(view_channel=True),
-        role: discord.PermissionOverwrite(view_channel=True)
-    }
+#Constants
 
-    # user selects either option 1 or 2 being a help ticket or something else (test)
-     #edit : changed 'Select' to discord.ui.select
-    select = discord.ui.Select (options = [
-        discord.SelectOption(label="Help Ticket", value="01", emoji="✅", description= "This will open a help ticket"),
-        discord.SelectOption(label="Other Ticket", value="02", emoji="❌", description="This will open a ticket in the other section")
-    ])
+MODERATION_CHANNEL_ID = 1126969936082894988
+LOG_CHANNEL_ID = 1128764737170178073
+moderation_role_id = 1126249291875369070
+bot_permissions = 534723951680
 
-    select = interaction.component
-    value = select.value
-    # Handles ticket channel creation and sets necessary permissions 
+#ticket data
+case_number = 1
+active_ticket = {}
 
-    if value == "01":
-        category = discord.utils.get(guild.categories, name="Tickets")
-        channel = await guild.create_text_channel(f"{interaction.user.name}-ticket", category=category, overwrites=overwrites)
-        await interaction.response.send_message(f"Created ticket - <#{channel.id}>", ephemeral=True)
-        await channel.send("Hello, how can i help you?")
-    elif value == "02":
-        category = discord.utils.get(guild.categories, name= "Other Tickets")
-        channel = await guild.create_text_channel(f"{interaction.user.name}-ticket", category=category, overwrites=overwrites)
-        await interaction.response.send_message(f"Created ticket - <#{channel.id}>", ephemeral=True)
-        await channel.send("Hello, how can i help you?")
-
-    view = discord.ui.View(timeout=None)
-    # view.add_item(select)
-    await interaction.response.edit_message("Choose an option below", view=view, ephemeral=True)
-
-# I want to test ctx (context) instead of labeling individual values. 'ctx' can pull details within commands so i want to try 
 @bot.command()
 async def ticket(ctx):
-    button = discord.ui.Button(label= "📥 Create Ticket", style=discord.ButtonStyle.green, custom_id="create_ticket")
-    button.callback = ticketcallback
-    view = discord.ui.View(timeout=None)
-    view.add_item(button)
-    await ctx.send("Open a ticket below", view=view)
+    # Check if the command is run in a guild (server) text channel
+    if isinstance(ctx.channel, discord.TextChannel):
+        #send DM to user with ticket selection menu
+        select_menu = discord.ui.Select(
+            placeholder='Select a ticket type',
+            options=[
+                discord.SelectOption(label='Issue',value='issue'),
+                discord.SelectOption(label='Question',value='question')
+            ]
+        )
+        select_view = discord.ui.View()
+        select_view.add_item(select_menu)
+        try:
+            dm_channel = await ctx.author.create_dm()
+            await dm_channel.send('Please select a ticket type:', view=select_view)
+        except Exception as e:
+            print(F'Failed to send DM to {ctx.author}: {e}')
 
+@bot.event
+async def on_select_option(interaction):
+    if interaction.component.custom_id == 'ticket_selection':
+        selected_ticket_type = interaction.values[0]
+        global case_number
+        case_id = case_number
+        case_number += 1
+        #create ticket object
+        ticket = {
+            'case_id': case_id,
+            'ticket_type': selected_ticket_type,
+            'user_id': interaction.user_id,
+            'channel_id': None,
+            'moderator_id': None
+        }
 
+        active_ticket[case_id] = ticket
+        
+        #send ticket information to the moderation channel
+        moderation_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+        if moderation_channel is None:
+            print('Failed to find moderation channel')
+            return
+        ticket_info = f'Ticket {case_id} | Type: {selected_ticket_type} | User: <@{interaction.user.id}>'
+        await moderation_channel.send(ticket_info)
 
+        #Log Ticket Creation
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        if log_channel is not None:
+            await log_channel.send(f'Ticket {case_id} created by <@{interaction}')
+
+        #Create Temporary text channel for the ticket
+        guild = interaction.guild
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            guild.get_role(interaction.uswer.id): discord.PermissionOverwrite(read_messages=True),
+            guild.get_role(moderation_role_id): discord.PermissionOverwrite(read_messages=True)
+        }
+        ticket_channel = await guild.create_text_channel(f'ticket-{case_id}', overwrites=overwrites)
+        ticket['channel_id'] = ticket_channel.id
+        active_ticket[case_id] = ticket
+
+#Ticket Cancellation 
+@bot.command()
+async def cancel_ticket(ctx):
+    if isinstance(ctx.channel, discord.TextChannel) and ctx.channel.id in [ticket['channel_id'] for ticket in active_ticket.values()]:
+        ticket_channel = ctx.channel
+        case_id = int(ticket_channel.name.split('-')[-1].strip())
+
+        if case_id in active_ticket:
+            ticket = active_ticket[case_id]
+
+            #log ticket cancelation 
+            log_channel = bot.get_channel(LOG_CHANNEL_ID)
+            if log_channel is not None:
+                await log_channel.send(f'Ticket {case_id} was canceled by <@{ctx.author.id}')
+
+            #Delete temp channel
+            await ticket_channel.delete()
+
+            #remove the ticket from active_tickets
+            active_ticket.pop(case_id, None)
+
+            #Send cancelation message to user 
+            user = await bot.fetch_user(ticket['user_id'])
+            if user is not None:
+                await user.send(f'Your ticket (case {case_id}) has been canceled. Thank you!')
+                
 
 if __name__ == '__main__':
     bot.run(TOKEN)
