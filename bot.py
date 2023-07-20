@@ -131,9 +131,8 @@ async def on_message(message):
         # Handle normal messages with the handle_response function
         reply = responses.handle_response(message.content, AD)
         await message.channel.send(reply)
-        return
+        
     #process commands from message
-    await bot.process_commands(message)
 
 # When message is sent into a channel that the bot has access to -
 # @client.event logs user chat msg to check if its a "!command", if so, Calls the 'send_message' function to send response to user
@@ -144,11 +143,11 @@ async def on_message(message):
 
     print(f'{username} said: "{user_message}" ({channel})')
 
-    # if user_message.startswith('?'):
-    #     user_message = user_message[1:] 
-    #     await send_message(message, user_message, is_private=True)
-    # else:
-    #     await send_message(message, user_message, is_private=False)
+    if user_message.startswith('?'):
+        user_message = user_message[1:] 
+        await send_message(message, user_message, is_private=True)
+    else:
+        await send_message(message, user_message, is_private=False)
 
 # Help Ticket creation 
 

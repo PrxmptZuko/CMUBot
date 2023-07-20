@@ -4,7 +4,7 @@ def handle_response(message, AD='') -> str:
     """Basic response functionality for bot"""
     p_message = message.lower()
 
-    if p_message == '!sayhello':
+    if p_message == '!hello':
         return 'Hey there!'
     
     if p_message == '!roll':
