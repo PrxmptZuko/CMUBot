@@ -4,7 +4,7 @@ def handle_response(message, AD='') -> str:
     """Basic response functionality for bot"""
     p_message = message.lower()
 
-    if p_message == 'hello':
+    if p_message == '!hello':
         return 'Hey there!'
     
     if p_message == '!roll':
@@ -23,8 +23,21 @@ def handle_response(message, AD='') -> str:
             return f'An error has occured: {error}'
         else:
             return f"User: {user}\nDescription: {user_description}"
+        
+    return "Sorry, I didnt understand that command."
 
-    if p_message == '!help':
-        # TODO Add options to contact a mod or create a support ticket
-        return "'This is a help message that you can modify.'"
+
+
+# async def on_message(message):
+#     if message.author == Client.user:
+#         return
     
+#         # ticketing to send msg to mod channel 
+#     if message == '!help':
+#         if any(role.name == 'Moderator' for role in message.author.roles):
+#             mod_channel = Client.get_channel(MOD_CHANNEL_ID)
+#             await mod_channel.send(f' Ticket request from {message.author.mention}')
+#             await message.author.send('Your ticket request has been submitted. A moderator will assist you shortly.')
+#         else:
+#             await message.channel.send('This command is only available to moderators.')
+#         return "'This is a help message that you can modify.'
