@@ -64,7 +64,21 @@ async def on_message(message):
         return
 
     # Only used if the message channel is a DM
-    if isinstance(message.channel, discord.DMChannel) and message.author != bot.user:
+    if isinstance(message.channel, discord.DMChannel):
+
+        # Connects to the server from the DM channel and preps user for role
+        server = bot.get_guild(bot.GUILD)
+        member = server.get_member(message.author.id)
+
+        # Cuts off communication between the bot and user if role is already granted
+        server_roles = server.roles
+        for server_role in server_roles:
+            if server_role.name == 'Moderator': # Exception roles for testing
+                continue
+            if member.get_role(server_role.id):
+                return
+        
+        # Gets the email from a message
         email = get_email(message.content.lower())
 
         # Error handling if an email wasn't found or not a real email address
@@ -73,16 +87,18 @@ async def on_message(message):
             await message.channel.send(error_message)
         else:
             user_description = check_AD(bot.AD, email)
-            member = message.author
 
-            # TODO Needs to be reworked so the guild is accessed then the role is granted
             # Currently only 2 roles but can be expanded later.
             if user_description == 'Community':
-                await member.add_roles('Community')
+                role_name = 'Community'
             else:
-                await member.add_roles('CMU')
+                role_name = 'CMU'
+            
+            # Sets the role for the user
+            role = discord.utils.get(server.roles, name=role_name)
+            await member.add_roles(role)
 
-            # TODO Stop listening after a role is granted
+            await member.send(f'Thank you! You have been granted the {role_name} role.')
 
 
 if __name__=='__main__':
