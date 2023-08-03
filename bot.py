@@ -1,8 +1,9 @@
-import discord, responses, json, random
+import discord, responses, json
+import discord.errors
 from active_directory import ActiveDirectory
 from discord.ext import commands
 # from discord_slash import SlashCommand
-from discord.ui import Button, View
+from discord.ui import Button, View, Select 
 
 import user_authentication
 
@@ -27,6 +28,8 @@ integer_value = permissions.value
 # store user data with user_id as the key and authentication code as the value
 user_data = {}
 
+# Dictionary to store help ticket data
+help_tickets = {}
 
 # independant message sent by the bot in either a private DM or returning output to original channel
 async def send_message(message, user_message, is_private):
@@ -95,7 +98,36 @@ async def on_member_join(member):
 async def on_message(message):
     if message.author == bot.user:
         return
+    
+    # print ('checking for command')
+    # # Handle messages as custom commands first
+    # custom_response = responses.handle_response(message.content, AD)
+    # if custom_response is not None:
+    #     await message.channel.send(custom_response)
+    #     return
 
+    if message.content.startswith("!ticket"):
+        # Generate a case number
+        print('Starts ticket process')
+        case_number = len(help_tickets) + 1
+        # Store the user ID for the case number in the help_tickets dictionary
+        print('stored user id for case')
+        help_tickets[case_number] = {
+            "user_id": message.author.id,
+            "temp_channel": None
+        }
+    # Send the case number to the user
+        print('sent user case number')
+        await message.author.send(f"Your case number is {case_number}")
+
+        # Log the case number in the moderation and log channels
+        print('sends ticket case and user id to mod and log channel')
+        mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        await mod_channel.send(f"New ticket created. Case #{case_number}. User: {message.author}")
+        await log_channel.send(f"New ticket created. Case #{case_number}. User: {message.author}")
+
+    print ('checks for new user response')
     # check if the message is from a new user in private message
     if isinstance(message.channel, discord.DMChannel) and message.author != bot.user:
         user_id = message.author.id
@@ -124,14 +156,15 @@ async def on_message(message):
             # TODO assign a user role based on the role variable
 
             await message.channel.send(reply_message)
-        
+        print ('looks for ! prefix')
     elif message.content.startswith("!"):
         await bot.process_commands(message)
     else: 
+        print ('referencing handle_response func')
         # Handle normal messages with the handle_response function
         reply = responses.handle_response(message.content, AD)
         await message.channel.send(reply)
-        
+       
     #process commands from message
 
 # When message is sent into a channel that the bot has access to -
@@ -143,6 +176,7 @@ async def on_message(message):
 
     print(f'{username} said: "{user_message}" ({channel})')
 
+    print ('checks for ? prefix incase')
     if user_message.startswith('?'):
         user_message = user_message[1:] 
         await send_message(message, user_message, is_private=True)
@@ -151,104 +185,88 @@ async def on_message(message):
 
 # Help Ticket creation 
 
-#Constants
+@bot.command()
+async def casenumber(ctx, case_number: int):
+    if case_number in help_tickets:
+        # Get the user ID for the case number
+        print('put case # to user id')
+        user_id = help_tickets[case_number]["user_id"]
+        user = bot.get_user(user_id)
 
+        # Create a temporary text channel with the user
+        print('creatin temp channel')
+        overwrites = {
+            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            user: discord.PermissionOverwrite(read_messages=True)
+        }
+        print('create temp channel')
+        temp_channel = await ctx.guild.create_text_channel(f"ticket-{case_number}", overwrites=overwrites)
+
+        # Store the temporary channel in the help_tickets dictionary
+        print('store temp channel')
+        help_tickets[case_number]["temp_channel"] = temp_channel
+
+        # Send a message to the moderator and the log channel
+        print('sent ticket info to channels')
+        mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        await mod_channel.send(f"Opened case #{case_number}. User: {user}")
+        await log_channel.send(f"Opened case #{case_number}. User: {user}")
+    else:
+        print('invalid case number')
+        await ctx.send("Invalid case number.")
+
+@bot.command()
+async def resolve(ctx, case_number: int):
+    if case_number in help_tickets:
+        temp_channel = help_tickets[case_number]["temp_channel"]
+
+        # Send a message to the moderator and the log channel
+        print('sent resolve msg')
+        mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        await mod_channel.send(f"Resolved case #{case_number}.")
+        await log_channel.send(f"Resolved case #{case_number}.")
+
+        # Close the temporary channel and remove it from the help_tickets dictionary
+        print('closing temp channel')
+        await temp_channel.send("Your ticket has been resolved. Closing this channel.")
+        del help_tickets[case_number]
+        await temp_channel.delete()
+    else:
+        print('invalid case number')
+        await ctx.send("Invalid case number.")
+
+
+@bot.command()
+async def cancel(ctx, case_number: int):
+    print('canceling ticket')
+    if case_number in help_tickets:
+        temp_channel = help_tickets[case_number]["temp_channel"]
+
+        # Send a message to the moderator and the log channel
+        print('sent cancel msg')
+        mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        await mod_channel.send(f"Cancelled case #{case_number}.")
+        await log_channel.send(f"Cancelled case #{case_number}.")
+
+        # Close the temporary channel and remove it from the help_tickets dictionary
+        print('closing temp channel')
+        await temp_channel.send("Your ticket has been cancelled. Closing this channel.")
+        del help_tickets[case_number]
+        await temp_channel.delete()
+    else:
+        print('invalid case number')
+        await ctx.send("Invalid case number.")
+
+#Constants
 MODERATION_CHANNEL_ID = 1126969936082894988
 LOG_CHANNEL_ID = 1128764737170178073
 moderation_role_id = 1126249291875369070
-bot_permissions = 534723951680
+# bot_permissions = 534723951680
 
-#ticket data
-case_number = 1
-active_ticket = {}
 
-@bot.command()
-async def ticket(ctx):
-    # Check if the command is run in a guild (server) text channel
-    if isinstance(ctx.channel, discord.TextChannel):
-        #send DM to user with ticket selection menu
-        select_menu = discord.ui.Select(
-            placeholder='Select a ticket type',
-            options=[
-                discord.SelectOption(label='Issue',value='issue'),
-                discord.SelectOption(label='Question',value='question')
-            ]
-        )
-        select_view = discord.ui.View()
-        select_view.add_item(select_menu)
-        try:
-            dm_channel = await ctx.author.create_dm()
-            await dm_channel.send('Please select a ticket type:', view=select_view)
-        except Exception as e:
-            print(F'Failed to send DM to {ctx.author}: {e}')
-
-@bot.event
-async def on_select_option(interaction):
-    if interaction.component.custom_id == 'ticket_selection':
-        selected_ticket_type = interaction.values[0]
-        global case_number
-        case_id = case_number
-        case_number += 1
-        #create ticket object
-        ticket = {
-            'case_id': case_id,
-            'ticket_type': selected_ticket_type,
-            'user_id': interaction.user_id,
-            'channel_id': None,
-            'moderator_id': None
-        }
-
-        active_ticket[case_id] = ticket
-        
-        #send ticket information to the moderation channel
-        moderation_channel = bot.get_channel(MODERATION_CHANNEL_ID)
-        if moderation_channel is None:
-            print('Failed to find moderation channel')
-            return
-        ticket_info = f'Ticket {case_id} | Type: {selected_ticket_type} | User: <@{interaction.user.id}>'
-        await moderation_channel.send(ticket_info)
-
-        #Log Ticket Creation
-        log_channel = bot.get_channel(LOG_CHANNEL_ID)
-        if log_channel is not None:
-            await log_channel.send(f'Ticket {case_id} created by <@{interaction}')
-
-        #Create Temporary text channel for the ticket
-        guild = interaction.guild
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            guild.get_role(interaction.uswer.id): discord.PermissionOverwrite(read_messages=True),
-            guild.get_role(moderation_role_id): discord.PermissionOverwrite(read_messages=True)
-        }
-        ticket_channel = await guild.create_text_channel(f'ticket-{case_id}', overwrites=overwrites)
-        ticket['channel_id'] = ticket_channel.id
-        active_ticket[case_id] = ticket
-
-#Ticket Cancellation 
-@bot.command()
-async def cancel_ticket(ctx):
-    if isinstance(ctx.channel, discord.TextChannel) and ctx.channel.id in [ticket['channel_id'] for ticket in active_ticket.values()]:
-        ticket_channel = ctx.channel
-        case_id = int(ticket_channel.name.split('-')[-1].strip())
-
-        if case_id in active_ticket:
-            ticket = active_ticket[case_id]
-
-            #log ticket cancelation 
-            log_channel = bot.get_channel(LOG_CHANNEL_ID)
-            if log_channel is not None:
-                await log_channel.send(f'Ticket {case_id} was canceled by <@{ctx.author.id}')
-
-            #Delete temp channel
-            await ticket_channel.delete()
-
-            #remove the ticket from active_tickets
-            active_ticket.pop(case_id, None)
-
-            #Send cancelation message to user 
-            user = await bot.fetch_user(ticket['user_id'])
-            if user is not None:
-                await user.send(f'Your ticket (case {case_id}) has been canceled. Thank you!')
                 
 
 if __name__ == '__main__':
