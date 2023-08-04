@@ -228,6 +228,10 @@ async def resolve(ctx, case_number: int):
         await mod_channel.send(f"Resolved case #{case_number}.")
         await log_channel.send(f"Resolved case #{case_number}.")
 
+        # Send a message to the user in the temporary channel
+        user = bot.get_user(help_tickets[case_number]["user_id"])
+        await user.send(f"Your ticket (case #{case_number}) has been resolved.")
+
         # Close the temporary channel and remove it from the help_tickets dictionary
         print('closing temp channel')
         await temp_channel.send("Your ticket has been resolved. Closing this channel.")
@@ -250,6 +254,10 @@ async def cancel(ctx, case_number: int):
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         await mod_channel.send(f"Cancelled case #{case_number}.")
         await log_channel.send(f"Cancelled case #{case_number}.")
+
+        # Send a message to the user in the temporary channel
+        user = bot.get_user(help_tickets[case_number]["user_id"])
+        await user.send(f"Your ticket (case #{case_number}) has been cancelled.")
 
         # Close the temporary channel and remove it from the help_tickets dictionary
         print('closing temp channel')
