@@ -160,10 +160,12 @@ async def on_message(message):
     elif message.content.startswith("!"):
         await bot.process_commands(message)
     else: 
-        print ('referencing handle_response func')
-        # Handle normal messages with the handle_response function
-        reply = responses.handle_response(message.content, AD)
-        await message.channel.send(reply)
+        return
+        # if message.content.startswith('!'):
+        #     print ('referencing handle_response func')
+        # # Handle normal messages with the handle_response function
+        # reply = responses.handle_response(message.content, AD)
+        # await message.channel.send(reply)
        
     #process commands from message
 
