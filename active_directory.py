@@ -27,8 +27,8 @@ class ActiveDirectory:
         with open('config.json', encoding="utf-8") as file:
             data = json.load(file)
             self.DOMAIN = data['DOMAIN']
-            self.EMAIL = data['EMAIL']
-            self.PASSWORD = data['PASSWORD']
+            self.EMAIL = data['CMICH_EMAIL']
+            self.PASSWORD = data['CMICH_PASSWORD']
         file.close()
 
         session = ADDomain(self.DOMAIN).create_session_as_user(self.EMAIL, self.PASSWORD)

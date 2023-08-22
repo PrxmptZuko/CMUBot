@@ -28,6 +28,8 @@ class CMUBot(commands.Bot):
         file.close()
 
         return TOKEN, GUILD
+    
+    # TODO Make an email log in function
 
     async def on_ready(self):
         """Flag to say the bot is ready for use"""
@@ -85,7 +87,7 @@ async def on_message(message):
         if email is None:
             error_message = "An error was detected regarding your email. Please double check your email was spelled correctly and try again."
             await message.channel.send(error_message)
-        else:
+        else: # TODO Turn this into an email verification instead of a simple one
             user_description = check_AD(bot.AD, email)
 
             # Currently only 2 roles but can be expanded later.
