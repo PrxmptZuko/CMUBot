@@ -26,8 +26,11 @@ def handle_response(message, AD='') -> str:
             return f'An error has occured: {error}'
         else:
             return f"User: {user}\nDescription: {user_description}"
+        # return doesnt understand command 
     print ('doesnt see command')
-    return "Sorry, I didnt understand that command."
+    return 
+    # "Sorry, I didnt understand that command."
+
 
 
 

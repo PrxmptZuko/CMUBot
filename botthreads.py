@@ -94,34 +94,39 @@ async def on_member_join(member):
     except discord.Forbidden:
         print(f"Failed to send a private message to {member}.")
 
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
-
-    print('Starting ticket process')
+    
     if message.content.startswith("!ticket"):
         # Generate a case number
-        print('ticket process Started')
+        print('Starts ticket process')
         case_number = len(help_tickets) + 1
         
         # Get the ticket channel
-        print('Fetching ticket channel')
         ticket_channel = bot.get_channel(TICKET_CHANNEL_ID)
         if ticket_channel is None:
             await message.author.send("Ticket channel not found. Please contact an administrator.")
             return
         
-        print('Storing user info for ticket')
+        # Create a thread for the ticket within the ticket channel
+        thread = await ticket_channel.create_thread(
+            name=f"ticket-{case_number}",
+            auto_archive_duration=1440  # 24 hours auto-archive
+        )
+        
         # Store the user ID and thread in the help_tickets dictionary
         help_tickets[case_number] = {
             "user_id": message.author.id,
+            "thread": thread,
             "temp_channel": None  # Initialize with None
         }
         
         # Send the case number to the user
         print('sent user case number')
-        await message.author.send(f"Your case number is {case_number}. \nYou will receive a @ mention when a moderator accepts your case.")
+        await message.author.send(f"Your case number is {case_number}. \nPlease navigate to your case thread in the Help-Ticket channel")
         
         # Log the case number in the moderation and log channels
         print('sends ticket case and user id to mod and log channel')
@@ -156,10 +161,47 @@ async def on_message(message):
 
             await message.channel.send(reply_message)
 
-    #         print ('looks for ! prefix')
-    # elif message.content.startswith("!"):
-    #     await bot.process_commands(message)
-    
+    elif isinstance(message.channel, discord.Thread):
+        if message.content.startswith("!resolve"):
+            case_number = int(message.content.split()[1])  # Extract case number from message
+            if case_number in help_tickets:
+                temp_channel = help_tickets[case_number]["temp_channel"]
+
+                mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+                log_channel = bot.get_channel(LOG_CHANNEL_ID)
+                await mod_channel.send(f"Resolved case #{case_number}.")
+                await log_channel.send(f"Resolved case #{case_number}.")
+
+                user = bot.get_user(help_tickets[case_number]["user_id"])
+                await user.send(f"Your ticket (case #{case_number}) has been resolved.")
+
+                await temp_channel.send("Your ticket has been resolved. Closing this thread.")
+                await temp_channel.edit(archived=True)  # Archive the thread
+                del help_tickets[case_number]
+            else:
+                await message.channel.send("Invalid case number.")
+
+        elif message.content.startswith("!cancel"):
+            case_number = int(message.content.split()[1])  # Extract case number from message
+            if case_number in help_tickets:
+                temp_channel = help_tickets[case_number]["thread"]
+
+                mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+                log_channel = bot.get_channel(LOG_CHANNEL_ID)
+                await mod_channel.send(f"Cancelled case #{case_number}.")
+                await log_channel.send(f"Cancelled case #{case_number}.")
+
+                user = bot.get_user(help_tickets[case_number]["user_id"])
+                await user.send(f"Your ticket (case #{case_number}) has been cancelled.")
+
+                await temp_channel.send("Your ticket has been cancelled. Closing this thread.")
+                await temp_channel.edit(archived=True)  # Archive the thread
+                del help_tickets[case_number]
+            else:
+                await message.channel.send("Invalid case number.")
+
+
+
     print ('checks for new user response')
     # check if the message is from a new user in private message
     if isinstance(message.channel, discord.DMChannel) and message.author != bot.user:
@@ -187,13 +229,11 @@ async def on_message(message):
             reply_message, role = user_authentication.authenticate_user(message, AD)
 
             await message.channel.send(reply_message)
-            
         print ('looks for ! prefix')
     elif message.content.startswith("!"):
         await bot.process_commands(message)
     else: 
         return
-    
         # if message.content.startswith('!'):
         #     print ('referencing handle_response func')
         # # Handle normal messages with the handle_response function
@@ -223,13 +263,13 @@ async def on_message(message):
 @bot.command()
 async def casenumber(ctx, case_number: int):
     if case_number in help_tickets:
-        # Get the user ID for the case number
+     # Get the user ID for the case number
         print('put case # to user id')
         user_id = help_tickets[case_number]["user_id"]
         user = bot.get_user(user_id)
 
-        # Create a temporary text channel with the user
-        print('creating temp channel')
+    # Create a temporary text channel with the user
+        print('creatin temp channel')
         overwrites = {
             ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
             user: discord.PermissionOverwrite(read_messages=True)
@@ -237,20 +277,11 @@ async def casenumber(ctx, case_number: int):
         print('create temp channel')
         temp_channel = await ctx.guild.create_text_channel(f"ticket-{case_number}", overwrites=overwrites)
 
-        print('fetching mod roles')
-        # Get the moderator roles
-        moderator_roles = [role for role in ctx.guild.roles if role.id in [1126249291875369070]]  # Server moderation role id
-
-        print('@ user and mods in temp channel')
-        # Mention the user and moderator roles in the temp channel
-        mention_text = f"{user.mention} {' '.join(role.mention for role in moderator_roles)}"
-        await temp_channel.send(mention_text)
-
-        # Store the temporary channel in the help_tickets dictionary
+     # Store the temporary channel in the help_tickets dictionary
         print('store temp channel')
         help_tickets[case_number]["temp_channel"] = temp_channel
 
-        # Send a message to the moderator and the log channel
+     # Send a message to the moderator and the log channel
         print('sent ticket info to channels')
         mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
@@ -265,67 +296,65 @@ async def resolve(ctx, case_number: int):
     if case_number in help_tickets:
         temp_channel = help_tickets[case_number]["temp_channel"]
 
-        # Send a message to the moderator and the log channel
-        print('sent resolve msg')
+    # Send a message to the moderator and the log channel
         mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         await mod_channel.send(f"Resolved case #{case_number}.")
         await log_channel.send(f"Resolved case #{case_number}.")
 
-        # Send a message to the user in the temporary channel
+     # Send a message to the user in the temporary channel
         user = bot.get_user(help_tickets[case_number]["user_id"])
         await user.send(f"Your ticket (case #{case_number}) has been resolved.")
 
-        # Close the temporary channel and remove it from the help_tickets dictionary
-        print('closing temp channel')
+     # Close the temporary channel and remove it from the help_tickets dictionary
         await temp_channel.send("Your ticket has been resolved. Closing this channel.")
+        await temp_channel.edit(archived=True)  # Archive the thread
         del help_tickets[case_number]
-        await temp_channel.delete()
     else:
-        print('invalid case number')
         await ctx.send("Invalid case number.")
-
 
 @bot.command()
 async def cancel(ctx, case_number: int):
-    print('canceling ticket')
     if case_number in help_tickets:
         temp_channel = help_tickets[case_number]["temp_channel"]
 
-        # Send a message to the moderator and the log channel
-        print('sent cancel msg')
+     # Send a message to the moderator and the log channel
         mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         await mod_channel.send(f"Cancelled case #{case_number}.")
         await log_channel.send(f"Cancelled case #{case_number}.")
 
-        # Send a message to the user in the temporary channel
+     # Send a message to the user in the temporary channel
         user = bot.get_user(help_tickets[case_number]["user_id"])
         await user.send(f"Your ticket (case #{case_number}) has been cancelled.")
 
-        # Close the temporary channel and remove it from the help_tickets dictionary
-        print('closing temp channel')
+     # Close the temporary channel and remove it from the help_tickets dictionary
         await temp_channel.send("Your ticket has been cancelled. Closing this channel.")
+        await temp_channel.edit(archived=True)  # Archive the thread
         del help_tickets[case_number]
-        await temp_channel.delete()
+
     else:
-        print('invalid case number')
         await ctx.send("Invalid case number.")
 
-@bot.command(name="commands")
-async def list_commands(ctx):
-    commands_list = [
-        "!ticket: Creates a new help ticket.",
-        "!resolve [case_number]: Resolves a help ticket.",
-        "!cancel [case_number]: Cancels a help ticket.",
-        "!look [global_id]: Look up a user from their global ID.",
-        "!hello: Get a friendly greeting.",
-        "!roll: Roll a random number between 1 and 10."
-    ]
-    
-    help_message = "\n".join(commands_list)
-    await ctx.send(f"Here are the available commands:\n{help_message}")
-
+@bot.event
+async def on_thread_update(before, after):
+    if before.archived != after.archived:
+        if not after.archived:
+         # Thread unarchived (opened)
+         # Log the thread reopening
+            mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+            log_channel = bot.get_channel(LOG_CHANNEL_ID)
+            case_number = int(after.name.split("-")[1])  # Extract case number from thread name
+            await mod_channel.send(f"Reopened case #{case_number}.")
+            await log_channel.send(f"Reopened case #{case_number}.")
+        else:
+        # Thread archived (closed)
+         # Log the thread closure
+            mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+            log_channel = bot.get_channel(LOG_CHANNEL_ID)
+            case_number = int(after.name.split("-")[1])  # Extract case number from thread name
+            await mod_channel.send(f"Closed case #{case_number}.")
+            await log_channel.send(f"Closed case #{case_number}.")
 
 #Constants
 MODERATION_CHANNEL_ID = 1126969936082894988
