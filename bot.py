@@ -99,17 +99,20 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    print('Starting ticket process')
     if message.content.startswith("!ticket"):
         # Generate a case number
-        print('Starts ticket process')
+        print('ticket process Started')
         case_number = len(help_tickets) + 1
         
         # Get the ticket channel
+        print('Fetching ticket channel')
         ticket_channel = bot.get_channel(TICKET_CHANNEL_ID)
         if ticket_channel is None:
             await message.author.send("Ticket channel not found. Please contact an administrator.")
             return
         
+        print('Storing user info for ticket')
         # Store the user ID and thread in the help_tickets dictionary
         help_tickets[case_number] = {
             "user_id": message.author.id,
@@ -153,7 +156,10 @@ async def on_message(message):
 
             await message.channel.send(reply_message)
 
-
+    #         print ('looks for ! prefix')
+    # elif message.content.startswith("!"):
+    #     await bot.process_commands(message)
+    
     print ('checks for new user response')
     # check if the message is from a new user in private message
     if isinstance(message.channel, discord.DMChannel) and message.author != bot.user:
