@@ -2,9 +2,7 @@ import discord, responses, json
 import discord.errors
 from active_directory import ActiveDirectory
 from discord.ext import commands
-# from discord_slash import SlashCommand
 from discord.ui import Button, View, Select 
-
 import user_authentication
 
 # Initializes bot and active directory sessions.
@@ -20,11 +18,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 permissions = discord.Permissions()
 permissions.read_messages = True 
 permissions.send_messages = True
-#gets the integer value of the permissions and prints to terminal
+#gets the integer value of the permissions and prints to terminal.
 integer_value = permissions.value
 
-# invite_link = discord.utils.oauth_url(1108466431068229643, permissions=integer_value)
-# slash = SlashCommand(bot, sync_commands=True)
 # store user data with user_id as the key and authentication code as the value
 user_data = {}
 
@@ -58,19 +54,15 @@ bot, TOKEN = run_discord_bot()
 @bot.event
 async def on_ready():
 # Print the invite link and the integer value of the permissions
-    
     print(f"Permissions Integer Value: {integer_value}")
     # print(f"Invite Link: {invite_link}")
     print(f'{bot.user} is now running!')
 
-# join logic - needs authentication process to prompt to user in private DM
-
+# join logic
 @bot.event
 async def on_member_join(member):
     if member == bot.user:
         return
-    # if message.content == f"Welcome {member.name}!":
-    #     return
 
     guild = member.guild
     #The default welcome channel (usually #general)
@@ -93,7 +85,8 @@ async def on_member_join(member):
             await member.send(welcome_message)
     except discord.Forbidden:
         print(f"Failed to send a private message to {member}.")
-
+        
+#when message is sent to channel bot has access to
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -155,10 +148,6 @@ async def on_message(message):
             reply_message, role = user_authentication.authenticate_user(message, AD)
 
             await message.channel.send(reply_message)
-
-    #         print ('looks for ! prefix')
-    # elif message.content.startswith("!"):
-    #     await bot.process_commands(message)
     
     print ('checks for new user response')
     # check if the message is from a new user in private message
@@ -194,17 +183,7 @@ async def on_message(message):
     else: 
         return
     
-        # if message.content.startswith('!'):
-        #     print ('referencing handle_response func')
-        # # Handle normal messages with the handle_response function
-        # reply = responses.handle_response(message.content, AD)
-        # await message.channel.send(reply)
-       
     #process commands from message
-
-# When message is sent into a channel that the bot has access to -
-# @client.event logs user chat msg to check if its a "!command", if so, Calls the 'send_message' function to send response to user
-
     username = str(message.author)
     user_message = str(message.content)
     channel = str(message.channel)
@@ -218,8 +197,7 @@ async def on_message(message):
     else:
         await send_message(message, user_message, is_private=False)
 
-# Help Ticket creation 
-
+# Help Ticket creation !ticket
 @bot.command()
 async def casenumber(ctx, case_number: int):
     if case_number in help_tickets:
@@ -260,6 +238,7 @@ async def casenumber(ctx, case_number: int):
         print('invalid case number')
         await ctx.send("Invalid case number.")
 
+#resolving tickets !resolve [casenumber]
 @bot.command()
 async def resolve(ctx, case_number: int):
     if case_number in help_tickets:
@@ -285,7 +264,7 @@ async def resolve(ctx, case_number: int):
         print('invalid case number')
         await ctx.send("Invalid case number.")
 
-
+#cancel ticket !cancel [casenumber]
 @bot.command()
 async def cancel(ctx, case_number: int):
     print('canceling ticket')
@@ -312,10 +291,12 @@ async def cancel(ctx, case_number: int):
         print('invalid case number')
         await ctx.send("Invalid case number.")
 
+#list server bot commands !commands
 @bot.command(name="commands")
 async def list_commands(ctx):
     commands_list = [
         "!ticket: Creates a new help ticket.",
+        "!casenumber [casenumber]: opens ticket and temp channel",
         "!resolve [case_number]: Resolves a help ticket.",
         "!cancel [case_number]: Cancels a help ticket.",
         "!look [global_id]: Look up a user from their global ID.",
