@@ -344,6 +344,18 @@ async def cancel(ctx, case_number: int):
     else:
         print('invalid case number')
         await ctx.send("Invalid case number.")
+        
+@bot.command(name="commands")
+async def list_commands(ctx):
+    commands_list = [
+        "!ticket: Creates a new help ticket.",
+        "!casenumber [casenumber]: opens ticket and temp channel",
+        "!resolve [case_number]: Resolves a help ticket.",
+        "!cancel [case_number]: Cancels a help ticket.",
+        "!look [global_id]: Look up a user from their global ID.",
+        "!hello: Get a friendly greeting.",
+        "!roll: Roll a random number between 1 and 10."
+    ]
 
 #Constants
 MODERATION_CHANNEL_ID = 1126969936082894988

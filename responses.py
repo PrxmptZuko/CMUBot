@@ -30,20 +30,3 @@ def handle_response(message, AD='') -> str:
     print ('doesnt see command')
     return 
     # "Sorry, I didnt understand that command."
-
-
-
-
-# async def on_message(message):
-#     if message.author == Client.user:
-#         return
-    
-#         # ticketing to send msg to mod channel 
-#     if message == '!help':
-#         if any(role.name == 'Moderator' for role in message.author.roles):
-#             mod_channel = Client.get_channel(MOD_CHANNEL_ID)
-#             await mod_channel.send(f' Ticket request from {message.author.mention}')
-#             await message.author.send('Your ticket request has been submitted. A moderator will assist you shortly.')
-#         else:
-#             await message.channel.send('This command is only available to moderators.')
-#         return "'This is a help message that you can modify.'
