@@ -17,9 +17,17 @@ class CMUBot(commands.Bot):
     def __init__(self):
         """Initializes the bot with intents, an AD session, and secrets"""
         super().__init__(command_prefix='!',intents=intents)
-        # self.AD = ActiveDirectory() # Temporarily disabled
+        self.AD = ActiveDirectory() # Temporarily disabled
         self.TOKEN, self.GUILD = self._get_secrets()
         self.GMAIL = Gmail()
+
+        self.ROLES = {
+            'Alumnus': 'Alumni',
+            'Student': 'Student',
+            'Prospect': 'Prospective Student',
+            'Staff': 'Faculty/Staff',
+            'Community': 'Community Members',
+        }
 
     def _get_secrets(self):
         """Grabs the secret variables for the bot to use in its instance"""
@@ -61,13 +69,11 @@ async def on_member_join(member):
 @bot.event
 async def on_message(message):
     """Listens for messages from the user"""
-
     if message.author == bot.user:
         return
 
     # Only used if the message channel is a DM
     if isinstance(message.channel, discord.DMChannel):
-
         # Connects to the server from the DM channel and preps user for role
         server = bot.get_guild(bot.GUILD)
         member = server.get_member(message.author.id)
@@ -76,8 +82,9 @@ async def on_message(message):
         authenticated = False
         server_roles = server.roles
         for server_role in server_roles:
-            if server_role.name == 'Moderator': # Exception roles for testing
-                continue
+            if server_role.name == 'Mod 🛠': # Exception roles for testing
+                authenticated = False
+                break
             if member.get_role(server_role.id):
                 authenticated = True
         
@@ -85,28 +92,26 @@ async def on_message(message):
         if not authenticated:
 
             # Gets the message history from mod channel and checks for existing auth codes for user
-            moderation_channel = bot.get_channel(1126969936082894988)
+            moderation_channel = bot.get_channel(1143918140519100507)
             message_history = [message async for message in moderation_channel.history(limit=50)]
             auth_message_sent, auth_code, target_msg = user_auth.confirm_auth_code(message_history, message.author.id)
             
             if auth_message_sent: # An authorization message was sent to the user
                 if auth_code in message.content:
-                    await member.send('Authorization code confirmed.') # Temporary response
                     await target_msg.add_reaction('👍') # Confirmation user has been authenticated
                     
-                    # user_description = user_auth.check_AD(bot.AD, email)
+                    email = user_auth.get_email(target_msg.embeds[0].to_dict()['description'])
+                    user_description = user_auth.check_AD(bot.AD, email)
 
-                    # # Currently only 2 roles but can be expanded later.
-                    # if user_description == 'Community':
-                    #     role_name = 'Community'
-                    # else:
-                    #     role_name = 'CMU'
+                    print(user_description)
+                    role_name = bot.ROLES[user_description]
+                    print(role_name)
                     
-                    # # Sets the role for the user
-                    # role = discord.utils.get(server.roles, name=role_name)
-                    # await member.add_roles(role)
+                    # Sets the role for the user
+                    role = discord.utils.get(server.roles, name=role_name)
+                    await member.add_roles(role)
 
-                    # await member.send(f'Thank you! You have been granted the {role_name} role.')
+                    await member.send(f'Thank you! You have been granted the {role_name} role.')
 
             else: # An authorization message does not exist for the user
                 
@@ -128,9 +133,17 @@ async def on_message(message):
                     await moderation_channel.send(embed=new_user_embed)
 
                     # Message to user explaining next steps
-                    message_for_user = 'Thank you!\n\n A message was sent to the provided email address containing your unique authorization code. The message will be coming from cmichesportsbot@gmail.com so make sure to check your inbox and spam folder. Respond to this message with your code to continue the authorization process.'
-                    await member.send()
-                
+                    message_for_user = 'Thank you!\n A message was sent to the provided email address containing your unique authorization code. The message will be coming from cmichesportsbot@gmail.com so make sure to check your inbox and spam folder. Respond to this message with your code to continue the authorization process.'
+                    await member.send(message_for_user)
+    
+    # TODO Add in ticketing system
+    # if message.content.startswith('!ticket'):
+    #     ticket_channel_id = 1124065175172042853
+    #     ticket_channel = bot.get_channel(ticket_channel_id)
+
+    #     log_history = [msg async for msg in ticket_channel.history(limit=50)]
+
+
 
 if __name__=='__main__':
     bot.run(bot.TOKEN)
