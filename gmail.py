@@ -7,7 +7,6 @@ class Gmail:
 
     def __init__(self) -> None:
         self.EMAIL, self.PASSWORD = self._get_secrets()
-        self.email_connection = self._start()
 
         with open('authentication_email.html', 'r', encoding='utf-8') as html_file:
             self.email_content = html_file.read()
@@ -37,15 +36,17 @@ class Gmail:
         # print(f'Email sent to {destination}')
 
         outbound_message = MIMEMultipart('alternative')
-        outbound_message["Subject"] = "[DO NOT REPLY] - CMU eSports Discord Authentication"
+        outbound_message["Subject"] = "[DO NOT REPLY] - CMU Esports Discord Authentication"
         outbound_message['From'] = self.EMAIL
         outbound_message["To"] = destination
 
-        plain_text = f"Hello!\nYour authentication code for the CMU eSports Discord Server is {auth_code}.\nPlease enter this code into the DM channel with Chip to authenticate your account."
+        plain_text = f"Hello!\nYour authentication code for the CMU Esports Discord Server is {auth_code}.\nPlease enter this code into the DM channel with Chip to authenticate your account."
         part1 = MIMEText(plain_text, "plain")
         part2 = MIMEText(self.email_content.format(auth_code), 'html')
 
         outbound_message.attach(part1)
         outbound_message.attach(part2)
 
-        self.email_connection.sendmail(from_addr=self.EMAIL, to_addrs=destination, msg=outbound_message.as_string())
+        email_connection = self._start()
+        email_connection.sendmail(from_addr=self.EMAIL, to_addrs=destination, msg=outbound_message.as_string())
+        print(f'Email sent to {destination}')

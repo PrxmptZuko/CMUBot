@@ -59,12 +59,9 @@ async def on_member_join(member):
         return
 
     welcome_message = "Welcome to the Official Central Michigan Esports Discord! Please provide your CMU or personal email address for authentication."
-
-    print(f"\n{member} has joined the server")
     time.sleep(10) # A small delay between joining the server and bot message
-    print(f'DM sent to {member}')
-
     await member.send(welcome_message)
+    print(f'Welcome message sent to {member.id}')
 
 @bot.event
 async def on_message(message):
@@ -103,15 +100,14 @@ async def on_message(message):
                     email = user_auth.get_email(target_msg.embeds[0].to_dict()['description'])
                     user_description = user_auth.check_AD(bot.AD, email)
 
-                    print(user_description)
                     role_name = bot.ROLES[user_description]
-                    print(role_name)
                     
                     # Sets the role for the user
                     role = discord.utils.get(server.roles, name=role_name)
                     await member.add_roles(role)
 
                     await member.send(f'Thank you! You have been granted the {role_name} role.')
+                    print(f'Role of {role_name} granted to {member.id}')
 
             else: # An authorization message does not exist for the user
                 
