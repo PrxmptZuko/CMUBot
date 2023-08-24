@@ -94,25 +94,23 @@ async def on_member_join(member):
     except discord.Forbidden:
         print(f"Failed to send a private message to {member}.")
 
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
-
-    print('Starting ticket process')
+    
     if message.content.startswith("!ticket"):
         # Generate a case number
-        print('ticket process Started')
+        print('Starts ticket process')
         case_number = len(help_tickets) + 1
         
         # Get the ticket channel
-        print('Fetching ticket channel')
         ticket_channel = bot.get_channel(TICKET_CHANNEL_ID)
         if ticket_channel is None:
             await message.author.send("Ticket channel not found. Please contact an administrator.")
             return
         
-        print('Storing user info for ticket')
         # Store the user ID and thread in the help_tickets dictionary
         help_tickets[case_number] = {
             "user_id": message.author.id,
@@ -156,10 +154,47 @@ async def on_message(message):
 
             await message.channel.send(reply_message)
 
-    #         print ('looks for ! prefix')
-    # elif message.content.startswith("!"):
-    #     await bot.process_commands(message)
-    
+    elif isinstance(message.channel, discord.Thread):
+        if message.content.startswith("!resolve"):
+            case_number = int(message.content.split()[1])  # Extract case number from message
+            if case_number in help_tickets:
+                temp_channel = help_tickets[case_number]["temp_channel"]
+
+                mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+                log_channel = bot.get_channel(LOG_CHANNEL_ID)
+                await mod_channel.send(f"Resolved case #{case_number}.")
+                await log_channel.send(f"Resolved case #{case_number}.")
+
+                user = bot.get_user(help_tickets[case_number]["user_id"])
+                await user.send(f"Your ticket (case #{case_number}) has been resolved.")
+
+                await temp_channel.send("Your ticket has been resolved. Closing this thread.")
+                await temp_channel.edit(archived=True)  # Archive the thread
+                del help_tickets[case_number]
+            else:
+                await message.channel.send("Invalid case number.")
+
+        elif message.content.startswith("!cancel"):
+            case_number = int(message.content.split()[1])  # Extract case number from message
+            if case_number in help_tickets:
+                temp_channel = help_tickets[case_number]["thread"]
+
+                mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+                log_channel = bot.get_channel(LOG_CHANNEL_ID)
+                await mod_channel.send(f"Cancelled case #{case_number}.")
+                await log_channel.send(f"Cancelled case #{case_number}.")
+
+                user = bot.get_user(help_tickets[case_number]["user_id"])
+                await user.send(f"Your ticket (case #{case_number}) has been cancelled.")
+
+                await temp_channel.send("Your ticket has been cancelled. Closing this thread.")
+                await temp_channel.edit(archived=True)  # Archive the thread
+                del help_tickets[case_number]
+            else:
+                await message.channel.send("Invalid case number.")
+
+
+
     print ('checks for new user response')
     # check if the message is from a new user in private message
     if isinstance(message.channel, discord.DMChannel) and message.author != bot.user:
@@ -187,13 +222,11 @@ async def on_message(message):
             reply_message, role = user_authentication.authenticate_user(message, AD)
 
             await message.channel.send(reply_message)
-            
         print ('looks for ! prefix')
     elif message.content.startswith("!"):
         await bot.process_commands(message)
     else: 
         return
-    
         # if message.content.startswith('!'):
         #     print ('referencing handle_response func')
         # # Handle normal messages with the handle_response function
@@ -311,21 +344,6 @@ async def cancel(ctx, case_number: int):
     else:
         print('invalid case number')
         await ctx.send("Invalid case number.")
-
-@bot.command(name="commands")
-async def list_commands(ctx):
-    commands_list = [
-        "!ticket: Creates a new help ticket.",
-        "!resolve [case_number]: Resolves a help ticket.",
-        "!cancel [case_number]: Cancels a help ticket.",
-        "!look [global_id]: Look up a user from their global ID.",
-        "!hello: Get a friendly greeting.",
-        "!roll: Roll a random number between 1 and 10."
-    ]
-    
-    help_message = "\n".join(commands_list)
-    await ctx.send(f"Here are the available commands:\n{help_message}")
-
 
 #Constants
 MODERATION_CHANNEL_ID = 1126969936082894988
