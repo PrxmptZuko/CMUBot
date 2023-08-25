@@ -35,8 +35,14 @@ class ActiveDirectory:
         return session
 
     def look_up_user(self, gid):
-        """Searches AD for a provided global ID and returns the user description"""
-
-        user=self.session.find_user_by_sam_name(gid, ['description'])
-        user_description = user.get('description')[0]
-        return user_description
+        """Searches AD for a provided global ID and returns the user information"""
+        try:
+            user = self.session.find_user_by_sam_name(gid, ['givenName','sn', 'description'])
+        except:
+            print('Error with look_up_user')
+            return 'Community', None, None
+        else:
+            user_description = user.get('description')[0]
+            user_given_name = user.get('givenName')
+            user_surname = user.get('sn')
+            return user_description, user_given_name, user_surname

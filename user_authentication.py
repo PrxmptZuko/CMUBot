@@ -48,10 +48,11 @@ def check_AD(AD, email):
 
     if email_parts[1] != 'cmich.edu':
         user_description = 'Community'
+        user_given_name, user_surname = None, None
     else:
-        user_description = AD.look_up_user(email_parts[0])
+        user_description, user_given_name, user_surname = AD.look_up_user(email_parts[0])
     
-    return user_description
+    return user_description, user_given_name, user_surname
 
 def create_auth_code():
     auth_code = ''

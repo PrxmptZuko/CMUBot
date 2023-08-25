@@ -17,7 +17,7 @@ class CMUBot(commands.Bot):
     def __init__(self):
         """Initializes the bot with intents, an AD session, and secrets"""
         super().__init__(command_prefix='!',intents=intents)
-        self.AD = ActiveDirectory() # Temporarily disabled
+        self.AD = ActiveDirectory()
         self.TOKEN, self.GUILD = self._get_secrets()
         self.GMAIL = Gmail()
 
@@ -98,13 +98,18 @@ async def on_message(message):
                     await target_msg.add_reaction('👍') # Confirmation user has been authenticated
                     
                     email = user_auth.get_email(target_msg.embeds[0].to_dict()['description'])
-                    user_description = user_auth.check_AD(bot.AD, email)
+                    user_description, user_given_name, user_surname = user_auth.check_AD(bot.AD, email)
 
                     role_name = bot.ROLES[user_description]
                     
                     # Sets the role for the user
                     role = discord.utils.get(server.roles, name=role_name)
                     await member.add_roles(role)
+
+                    # Sets the user's nickname to their AD name if present
+                    if user_given_name != None and user_surname != None:
+                        nickname = f"{user_given_name} {user_surname}"
+                        await member.edit(nick=nickname)
 
                     await member.send(f'Thank you! You have been granted the {role_name} role.')
                     print(f'Role of {role_name} granted to {member.id}')
