@@ -4,7 +4,7 @@ from active_directory import ActiveDirectory
 from discord.ext import commands
 # from discord_slash import SlashCommand
 from discord.ui import Button, View, Select 
-
+import asyncio, time, os
 import user_authentication
 
 # Initializes bot and active directory sessions.
@@ -30,6 +30,9 @@ user_data = {}
 
 # Dictionary to store help ticket data
 help_tickets = {}
+
+#Ticket convo init dictionary for storing !ticket convos 
+ticket_conversations = {}
 
 # independant message sent by the bot in either a private DM or returning output to original channel
 async def send_message(message, user_message, is_private):
@@ -256,6 +259,7 @@ async def on_message(message):
 @bot.command()
 async def casenumber(ctx, case_number: int):
     if case_number in help_tickets:
+
         # Get the user ID for the case number
         print('put case # to user id')
         user_id = help_tickets[case_number]["user_id"]
@@ -298,6 +302,22 @@ async def resolve(ctx, case_number: int):
     if case_number in help_tickets:
         temp_channel = help_tickets[case_number]["temp_channel"]
 
+
+        # Get the conversation
+        print ("Creating conversation dictionary")
+        conversation = []
+
+        print ("Getting content from ticket before resolve")
+        async for message in temp_channel.history(limit=None):
+            conversation.append({
+                "author": str(message.author),
+                "content": message.content,
+                "timestamp": message.created_at.timestamp()
+            })
+
+        # Save the conversation to the ticket_conversations dictionary
+        ticket_conversations[case_number] = conversation
+
         # Send a message to the moderator and the log channel
         print('sent resolve msg')
         mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
@@ -314,6 +334,16 @@ async def resolve(ctx, case_number: int):
         await temp_channel.send("Your ticket has been resolved. Closing this channel.")
         del help_tickets[case_number]
         await temp_channel.delete()
+
+        #Files ticket conversations created based on case number 
+        conversation_filename = f"ticket_{case_number}_conversation.json"
+        conversation_path = os.path.join("ticket_conversations", conversation_filename)
+
+        # Serialize the conversation and save it as a JSON file
+        conversation_json = json.dumps(conversation, indent=4)
+        with open(conversation_path, "w") as json_file:
+            json_file.write(conversation_json)
+
     else:
         print('invalid case number')
         await ctx.send("Invalid case number.")
@@ -324,6 +354,20 @@ async def cancel(ctx, case_number: int):
     print('canceling ticket')
     if case_number in help_tickets:
         temp_channel = help_tickets[case_number]["temp_channel"]
+
+        # Get the conversation
+        conversation = []
+
+        print ("Getting content from ticket before canceling")
+        async for message in temp_channel.history(limit=None):
+            conversation.append({
+                "author": str(message.author),
+                "content": message.content,
+                "timestamp": message.created_at.timestamp()
+            })
+
+        # Save the conversation to the ticket_conversations dictionary
+        ticket_conversations[case_number] = conversation
 
         # Send a message to the moderator and the log channel
         print('sent cancel msg')
@@ -341,9 +385,55 @@ async def cancel(ctx, case_number: int):
         await temp_channel.send("Your ticket has been cancelled. Closing this channel.")
         del help_tickets[case_number]
         await temp_channel.delete()
+
+        #Files ticket conversations created based on case number 
+        conversation_filename = f"ticket_{case_number}_conversation.json"
+        conversation_path = os.path.join("ticket_conversations", conversation_filename)
+
+        # Serialize the conversation and save it as a JSON file
+        conversation_json = json.dumps(conversation, indent=4)
+        with open(conversation_path, "w") as json_file:
+            json_file.write(conversation_json)    
+
     else:
         print('invalid case number')
         await ctx.send("Invalid case number.")
+
+    # Background task to check for idle tickets
+async def check_idle_tickets():
+    await bot.wait_until_ready()  # Wait until the bot is ready
+
+    while not bot.is_closed():
+        await asyncio.sleep(3600)  # Check every hour (adjust as needed)
+        current_time = time.time()
+
+        for case_number, conversation in ticket_conversations.items():
+            if not conversation:
+                continue
+
+            last_activity = conversation[-1]["timestamp"]
+            if current_time - last_activity >= 86400:  # 24 hours in seconds
+                temp_channel = help_tickets[case_number]["temp_channel"]
+
+                #Files ticket conversations created based on case number 
+                conversation_filename = f"ticket_{case_number}_conversation.json"
+                conversation_path = os.path.join("ticket_conversations", conversation_filename)
+
+                # Save conversation to JSON and close the channel
+                conversation_json = json.dumps(conversation, indent=4)
+                with open(f"ticket_{case_number}_conversation.json", "w") as json_file:
+                    json_file.write(conversation_json)
+
+                # Send a message indicating that the ticket has been closed due to inactivity
+                await temp_channel.send("This ticket has been closed due to inactivity.")
+                await temp_channel.edit(archived=True)  # Archive the channel
+
+                # Remove the ticket from help_tickets and ticket_conversations
+                del help_tickets[case_number]
+                del ticket_conversations[case_number]
+
+        await asyncio.sleep(1800)  # Wait for 30 minutes before the next check
+
 
 @bot.command(name="commands")
 async def list_commands(ctx):
@@ -368,4 +458,10 @@ TICKET_CHANNEL_ID = 1124065175172042853
 
 
 if __name__ == '__main__':
+    bot.run(TOKEN)
+
+    if not os.path.exists("ticket_conversations"):
+        os.makedirs("ticket_conversations")  # Create the folder if it doesn't exist
+
+    bot.loop.create_task(check_idle_tickets())  # Start the background task
     bot.run(TOKEN)
