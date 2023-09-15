@@ -4,7 +4,7 @@ from active_directory import ActiveDirectory
 from discord.ext import commands
 # from discord_slash import SlashCommand
 from discord.ui import Button, View, Select 
-import asyncio, time, os
+import asyncio, time, os, datetime
 import user_authentication
 
 # Initializes bot and active directory sessions.
@@ -33,6 +33,7 @@ help_tickets = {}
 
 #Ticket convo init dictionary for storing !ticket convos 
 ticket_conversations = {}
+Now = datetime.datetime.now()
 
 # independant message sent by the bot in either a private DM or returning output to original channel
 async def send_message(message, user_message, is_private):
@@ -60,7 +61,7 @@ bot, TOKEN = run_discord_bot()
 
 @bot.event
 async def on_ready():
-# Print the invite link and the integer value of the permissions
+
 
     print(f"Permissions Integer Value: {integer_value}")
     # print(f"Invite Link: {invite_link}")
@@ -387,7 +388,7 @@ async def cancel(ctx, case_number: int):
         await temp_channel.delete()
 
         #Files ticket conversations created based on case number 
-        conversation_filename = f"ticket_{case_number}_conversation.json"
+        conversation_filename = f"ticket_{case_number}_{Now}.json"
         conversation_path = os.path.join("ticket_conversations", conversation_filename)
 
         # Serialize the conversation and save it as a JSON file
@@ -433,6 +434,20 @@ async def check_idle_tickets():
                 del ticket_conversations[case_number]
 
         await asyncio.sleep(1800)  # Wait for 30 minutes before the next check
+
+@bot.command
+async def name_change(ctx):
+    if ctx.message.content.startswith("!namechange"):
+        if ctx.author == bot.user:
+            return
+        # Find the moderator channel by its name (change 'moderation' to the actual channel name)
+        mod_channel = ctx.guild.get_channel(MODERATION_CHANNEL_ID)
+
+        if mod_channel:
+            # Notify the moderators in the mod channel
+            await mod_channel.send(f'@mods {ctx.author.mention} requested a name change.')
+        else:
+            await ctx.send("Mod channel not found. Please contact the server administrator.")
 
 
 @bot.command(name="commands")
