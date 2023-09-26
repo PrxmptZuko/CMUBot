@@ -292,6 +292,17 @@ async def cancel(ctx, case_number: int):
         print('invalid case number')
         await ctx.send("Invalid case number.")
 
+
+@bot.command(name= "namechange")
+async def namechange(ctx):
+    # if message.startswith("!namechange"):
+        print("Sending message to Mod channel")
+        mod_channel = bot.get_channel(MODERATION_CHANNEL_ID)
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        await mod_channel.send(f"User {ctx.author} has requested a name change.")
+        await log_channel.send(f"User {ctx.author} requested a name change.") 
+
+
 #list server bot commands !commands
 @bot.command(name="commands")
 async def list_commands(ctx):
@@ -303,6 +314,7 @@ async def list_commands(ctx):
         "!look [global_id]: Look up a user from their global ID.",
         "!hello: Get a friendly greeting.",
         "!roll: Roll a random number between 1 and 10."
+        "!namechange: Will notify mods to your request to change sever name."
     ]
     
     help_message = "\n".join(commands_list)
