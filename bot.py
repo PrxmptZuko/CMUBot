@@ -302,6 +302,12 @@ async def namechange(ctx):
         await mod_channel.send(f"User {ctx.author} has requested a name change.")
         await log_channel.send(f"User {ctx.author} requested a name change.") 
 
+@bot.command(name= "CoolGuy")
+async def Coolguy(ctx):
+    print("Telling everyone who a cool guy is.")
+    general_channel = bot.get_channel(GENERAL_CHANNEL_ID)
+    await general_channel.send(f"Hey everyone, just wanted to remind yall that {ctx.author} is a cool guy ;)") 
+
 
 #list server bot commands !commands
 @bot.command(name="commands")
@@ -326,6 +332,7 @@ MODERATION_CHANNEL_ID = 1126969936082894988
 LOG_CHANNEL_ID = 1128764737170178073
 moderation_role_id = 1126249291875369070
 TICKET_CHANNEL_ID = 1124065175172042853
+GENERAL_CHANNEL_ID = 1124064859550662766
 # bot_permissions = 534723951680
 
 
