@@ -302,11 +302,12 @@ async def namechange(ctx):
         await mod_channel.send(f"User {ctx.author} has requested a name change.")
         await log_channel.send(f"User {ctx.author} requested a name change.") 
 
-@bot.command(name= "CoolGuy")
-async def Coolguy(ctx):
+#dont worry about it
+@bot.command(name= "coolguy")
+async def cool_guy(ctx):
     print("Telling everyone who a cool guy is.")
     general_channel = bot.get_channel(GENERAL_CHANNEL_ID)
-    await general_channel.send(f"Hey everyone, just wanted to remind yall that {ctx.author} is a cool guy ;)") 
+    await general_channel.send(f"Hey everyone! {ctx.author} just wanted to remind yall that Matt is a cool guy. despite what the government says ;)")
 
 
 #list server bot commands !commands

@@ -387,10 +387,12 @@ async def cancel(ctx, case_number: int):
         del help_tickets[case_number]
         await temp_channel.delete()
 
+        print("Creating json file for ticket")
         #Files ticket conversations created based on case number 
         conversation_filename = f"ticket_{case_number}_{Now}.json"
         conversation_path = os.path.join("ticket_conversations", conversation_filename)
 
+        print('dumping file contents')
         # Serialize the conversation and save it as a JSON file
         conversation_json = json.dumps(conversation, indent=4)
         with open(conversation_path, "w") as json_file:
@@ -435,20 +437,8 @@ async def check_idle_tickets():
 
         await asyncio.sleep(1800)  # Wait for 30 minutes before the next check
 
-@bot.command
-async def name_change(ctx):
-    if ctx.message.content.startswith("!namechange"):
-        if ctx.author == bot.user:
-            return
-        # Find the moderator channel by its name (change 'moderation' to the actual channel name)
-        mod_channel = ctx.guild.get_channel(MODERATION_CHANNEL_ID)
 
-        if mod_channel:
-            # Notify the moderators in the mod channel
-            await mod_channel.send(f'@mods {ctx.author.mention} requested a name change.')
-        else:
-            await ctx.send("Mod channel not found. Please contact the server administrator.")
-
+#user command for requesting name change
 @bot.command(name= "namechange")
 async def namechange(ctx):
     # if message.startswith("!namechange"):
@@ -458,12 +448,25 @@ async def namechange(ctx):
         await mod_channel.send(f"User {ctx.author} has requested a name change.")
         await log_channel.send(f"User {ctx.author} requested a name change.") 
 
-@bot.command(name= "CoolGuy")
-async def Coolguy(ctx):
+#sends random meme from file
+@bot.command(name= "meme")
+async def random_image(ctx):
+    print("Pulling a random image")
+    with open('meme_images/sait.jpg', 'rb') as f:
+        picture = discord.File(f)
+        await ctx.send(file=picture)
+
+
+
+#dont worry about it
+@bot.command(name= "coolguy")
+async def cool_guy(ctx):
     print("Telling everyone who a cool guy is.")
     general_channel = bot.get_channel(GENERAL_CHANNEL_ID)
-    await general_channel.send(f"Hey everyone, just wanted to remind yall that {ctx.author} is a cool guy ;)") 
+    await general_channel.send(f"Hey everyone! {ctx.author} just wanted to remind yall that Matt is a cool guy. despite what the government says ;)") 
 
+
+#outputs a command list
 @bot.command(name="commands")
 async def list_commands(ctx):
     commands_list = [
@@ -474,6 +477,7 @@ async def list_commands(ctx):
         "!look [global_id]: Look up a user from their global ID.",
         "!hello: Get a friendly greeting.",
         "!roll: Roll a random number between 1 and 10."
+        "!coolguy: sends a thoughtful reminder about someone special"
     ]
 
 #Constants
