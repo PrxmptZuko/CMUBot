@@ -6,6 +6,7 @@ from discord.ext import commands
 from discord.ui import Button, View, Select 
 import asyncio, time, os, datetime
 import user_authentication
+import random
 
 # Initializes bot and active directory sessions.
 AD = ActiveDirectory()
@@ -456,7 +457,37 @@ async def random_image(ctx):
         picture = discord.File(f)
         await ctx.send(file=picture)
 
+# Keep track of the last sent image to avoid repeats
+last_sent_image = None
 
+@bot.command(name="randommeme")
+async def random_image(ctx):
+    print("Pulling a random image")
+    
+    # Get a list of all image files in the 'meme_images' folder
+    image_files = [f for f in os.listdir('meme_images') if f.endswith(('.jpg', '.png', '.gif'))]
+    
+    if not image_files:
+        await ctx.send("No images found in the 'meme_images' folder.")
+        return
+    
+    # Remove the last sent image from the list, if it exists
+    if last_sent_image in image_files:
+        image_files.remove(last_sent_image)
+    
+    # Choose a random image from the remaining images
+    random_image = random.choice(image_files)
+    
+    # Open the chosen image file in binary read ('rb') mode
+    with open(os.path.join('meme_images', random_image), 'rb') as f:
+        # Create a discord.File object using the binary data from the file
+        picture = discord.File(f)
+        
+        # Send the image as an attachment to the same channel where the command was invoked
+        await ctx.send(file=picture)
+        
+    # Update the last sent image
+    last_sent_image = random_image
 
 #dont worry about it
 @bot.command(name= "coolguy")
@@ -487,9 +518,6 @@ moderation_role_id = 1126249291875369070
 TICKET_CHANNEL_ID = 1124065175172042853
 GENERAL_CHANNEL_ID = 1124064859550662766
 # bot_permissions = 534723951680
-
-
-
 
 if __name__ == '__main__':
     bot.run(TOKEN)

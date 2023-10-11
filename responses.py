@@ -1,4 +1,6 @@
 import random
+import discord
+
 
 def handle_response(message, AD='') -> str:
     """Basic response functionality for bot"""
@@ -30,3 +32,12 @@ def handle_response(message, AD='') -> str:
     print ('doesnt see command')
     return 
     # "Sorry, I didnt understand that command."
+
+
+
+# async def send_meme():
+#     if ctx.startswith('meme'):
+#         with open('meme_images/sait.jpg', 'rb') as f:
+#             picture = discord.File(f)
+#             await ctx.send(file=picture)
+#             return ctx.send(file=picture)   
