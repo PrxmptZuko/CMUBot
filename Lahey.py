@@ -62,8 +62,7 @@ bot, TOKEN = run_discord_bot()
 
 @bot.event
 async def on_ready():
-
-
+    # printing permission int value. 3072 
     print(f"Permissions Integer Value: {integer_value}")
     # print(f"Invite Link: {invite_link}")
     print(f'{bot.user} is now running!')
@@ -526,4 +525,3 @@ if __name__ == '__main__':
         os.makedirs("ticket_conversations")  # Create the folder if it doesn't exist
 
     bot.loop.create_task(check_idle_tickets())  # Start the background task
-    bot.run(TOKEN)

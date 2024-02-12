@@ -7,6 +7,7 @@ import discord
 from discord.ext import commands
 import asyncio, os, datetime
 # Custom modules
+import responses
 from active_directory import ActiveDirectory
 import user_authentication as user_auth
 from gmail import Gmail
